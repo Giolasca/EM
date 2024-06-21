@@ -1,0 +1,68 @@
+clc; clear; close all;
+
+%% IM Torque plot and load characteristics
+
+R1 = 5.7;
+X1 = 11.9948;
+R2 = 20.3837;
+X2 = 11.9948;
+Rc = 482.5960;
+Xm = 157.2013;
+Ns   = 1500;
+
+V1 = 380/sqrt(3);
+
+% Range di velocità dal 25% al 175% della velocità di sincronismo (1500 rpm)
+RPM_min = -Ns;
+RPM_max = 4*Ns;
+RPMs = linspace(RPM_min, RPM_max, 250);
+
+% Calcolo dei carichi (load) per ogni valore di velocità
+s_values = (Ns - RPMs) ./ Ns;
+Z1 = R1 + 1i*X1;
+Zm = Rc*1i*Xm/(Rc+1i*Xm);
+Z2 = R2./s_values + 1i*X2;
+Zeq = (Z1 + Zm.*Z2./(Zm + Z2));
+I1 = V1./(Zeq);
+I2 = V1 ./ (Z1 + Zm) - I1;
+
+% Calcolo della potenza e coppia elettrica
+Pem = 3.*R2.*((1-s_values)./s_values).*(abs(I2)).^2;
+Torque = Pem ./ (RPMs * pi / 30);
+
+V1_85 = 380/sqrt(3)*0.85;
+
+% Calcolo dei carichi (load) per ogni valore di velocità
+I1_85 = V1_85./(Zeq);
+I2_85 = V1_85 ./ (Z1 + Zm) - I1_85;
+
+% Calcolo della potenza e coppia elettrica
+Pem_85 = 3.*R2.*((1-s_values)./s_values).*(abs(I2_85)).^2;
+Torque_85 = Pem_85 ./ (RPMs * pi / 30);
+
+figure(1)
+plot(RPMs, Torque, 'LineWidth',1.2);
+grid on; 
+xlabel('Spped [RPM]');
+ylabel('Torque [Nm]');
+title('Torque-Speed characteristics of IM');
+hold on
+plot(RPMs, Torque_85, 'LineWidth',1.2)
+legend('$$100\% V_1$$', '$$85\% V_1$$','Interpreter','latex')
+hold off
+
+% Trova il valore di t_max e il suo indice
+[t_max, idx_max] = max(Torque);
+
+figure(2)
+plot(s_values, Torque,'LineWidth',1.2)
+set(gca, 'XDir', 'reverse')
+xlim([0,1])
+ylim([0, max(Torque) + 1.5]) 
+grid on
+hold on
+plot([1, 0], [t_max, t_max], '--','LineWidth',1.2)
+scatter(s_values(58), t_max, 'ro', 'filled')
+legend('T(s)','$$T_{max}$$','$$T_{max_{true}}$$','Interpreter','latex')
+xlabel('slip','Interpreter','latex')
+ylabel('Torque [Nm]','Interpreter','latex')
